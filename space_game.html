@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Space Shooter Game</title>
+<style>
+  body { margin: 0; background: black; overflow: hidden; }
+  canvas { display: block; background: black; }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+
+<script>
+// Canvas setup
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// Player
+const player = { x: canvas.width/2, y: canvas.height - 50, width: 50, height: 50, speed: 7 };
+
+// Bullets
+let bullets = [];
+
+// Enemies
+let enemies = [];
+function spawnEnemy() {
+    const x = Math.random() * (canvas.width - 50);
+    enemies.push({ x, y: -50, width: 50, height: 50, speed: 3 });
+}
+
+// Sounds
+const shootSound = new Audio('https://freesound.org/data/previews/320/320654_5260871-lq.mp3'); // shooting sound
+const explosionSound = new Audio('https://freesound.org/data/previews/41/41457_512123-lq.mp3'); // explosion
+
+// Controls
+const keys = {};
+document.addEventListener('keydown', e => keys[e.key] = true);
+document.addEventListener('keyup', e => keys[e.key] = false);
+
+// Game loop
+function update() {
+    // Move player
+    if (keys['ArrowLeft'] && player.x > 0) player.x -= player.speed;
+    if (keys['ArrowRight'] && player.x < canvas.width - player.width) player.x += player.speed;
+
+    // Shoot
+    if (keys[' '] && bullets.length < 5) {
+        bullets.push({ x: player.x + player.width/2 - 5, y: player.y, width: 10, height: 20, speed: 10 });
+        shootSound.currentTime = 0;
+        shootSound.play();
+    }
+
+    // Update bullets
+    bullets.forEach((b, i) => {
+        b.y -= b.speed;
+        if (b.y < -20) bullets.splice(i,1);
+    });
+
+    // Update enemies
+    enemies.forEach((e, i) => {
+        e.y += e.speed;
+        // Check collision with bullets
+        bullets.forEach((b,j) => {
+            if (b.x < e.x + e.width && b.x + b.width > e.x && b.y < e.y + e.height && b.y + b.height > e.y) {
+                bullets.splice(j,1);
+                enemies.splice(i,1);
+                explosionSound.currentTime = 0;
+                explosionSound.play();
+            }
+        });
+        // Check collision with player
+        if (player.x < e.x + e.width && player.x + player.width > e.x && player.y < e.y + e.height && player.y + player.height > e.y) {
+            alert("Game Over!");
+            window.location.reload();
+        }
+    });
+
+    // Spawn enemies
+    if (Math.random() < 0.02) spawnEnemy();
+}
+
+// Draw everything
+function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    // Player
+    ctx.fillStyle = 'cyan';
+    ctx.fillRect(player.x, player.y, player.width, player.height);
+    // Bullets
+    ctx.fillStyle = 'yellow';
+    bullets.forEach(b => ctx.fillRect(b.x, b.y, b.width, b.height));
+    // Enemies
+    ctx.fillStyle = 'red';
+    enemies.forEach(e => ctx.fillRect(e.x, e.y, e.width, e.height));
+}
+
+// Main loop
+function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>
+space

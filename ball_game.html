@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mazadar Ball Catch Game</title>
+<style>
+    body {
+        margin: 0;
+        overflow: hidden;
+        background: #f0f8ff;
+        font-family: sans-serif;
+    }
+    canvas {
+        display: block;
+        background: #fff;
+        margin: 0 auto;
+        border: 3px solid #000;
+    }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+let player = { x: 350, y: 550, width: 100, height: 20, speed: 10 };
+let ball = { x: Math.random() * 780, y: -20, radius: 20, speed: 5 };
+let score = 0;
+let gameOver = false;
+
+document.addEventListener('keydown', (e) => {
+    if(e.key === 'ArrowLeft') player.x -= player.speed;
+    if(e.key === 'ArrowRight') player.x += player.speed;
+
+    // Boundaries
+    if(player.x < 0) player.x = 0;
+    if(player.x > canvas.width - player.width) player.x = canvas.width - player.width;
+});
+
+function drawPlayer() {
+    ctx.fillStyle = 'blue';
+    ctx.fillRect(player.x, player.y, player.width, player.height);
+}
+
+function drawBall() {
+    ctx.fillStyle = 'red';
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.closePath();
+}
+
+function drawScore() {
+    ctx.fillStyle = 'green';
+    ctx.font = '30px Arial';
+    ctx.fillText('Score: ' + score, 10, 40);
+}
+
+function update() {
+    if(gameOver) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Move ball
+    ball.y += ball.speed;
+
+    // Collision detection
+    if(ball.y + ball.radius > player.y &&
+       ball.x > player.x && ball.x < player.x + player.width) {
+        score++;
+        ball.x = Math.random() * (canvas.width - ball.radius * 2) + ball.radius;
+        ball.y = -20;
+        ball.speed += 0.5; // Increase speed
+    }
+
+    // Missed ball
+    if(ball.y - ball.radius > canvas.height) {
+        gameOver = true;
+        alert('Game Over! Your score: ' + score);
+    }
+
+    drawPlayer();
+    drawBall();
+    drawScore();
+
+    requestAnimationFrame(update);
+}
+
+// Start game
+update();
+</script>
+</body>
+</html>

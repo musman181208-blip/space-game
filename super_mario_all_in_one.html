@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Super Mario Unlimited</title>
+<style>
+  body{margin:0;background:#5c94fc}
+  canvas{display:block;margin:auto;background:#5c94fc}
+</style>
+</head>
+<body>
+
+<canvas id="game" width="900" height="450"></canvas>
+
+<script>
+const c=document.getElementById("game"),x=c.getContext("2d");
+let state="menu",soundOn=true;
+let level=1,score=0,lives=3;
+const g=0.7;
+
+// 🔊 SOUND
+const ac=new (window.AudioContext||window.webkitAudioContext)();
+function play(f,d=0.1){
+  if(!soundOn) return;
+  const o=ac.createOscillator(),g=ac.createGain();
+  o.frequency.value=f;o.connect(g);g.connect(ac.destination);
+  o.start();g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+d);
+  o.stop(ac.currentTime+d);
+}
+
+// PLAYER
+const p={x:50,y:340,w:32,h:40,dx:0,dy:0,s:4,j:14,g:false};
+let plats=[],coins=[],enemies=[];
+
+// 🔁 UNLIMITED LEVEL GENERATOR
+function genLevel(){
+  plats=[{x:0,y:400,w:900,h:50}];
+  coins=[];enemies=[];
+  let n=3+Math.floor(level/2);
+  for(let i=0;i<n;i++){
+    let px=120+i*140,py=320-Math.random()*160;
+    plats.push({x:px,y:py,w:120,h:20});
+    coins.push({x:px+45,y:py-35,c:false});
+  }
+  let e=Math.min(1+Math.floor(level/2),5);
+  for(let i=0;i<e;i++)
+    enemies.push({x:200+i*180,y:370,w:30,h:30,dx:(1.5+level*0.1)*(Math.random()<.5?-1:1)});
+  p.x=50;p.y=340;p.dy=0;
+  play(700);
+}
+
+// INPUT
+const k={};
+addEventListener("keydown",e=>{
+  k[e.key]=true;
+  if(state==="menu"&&e.key==="Enter"){state="play";genLevel();}
+  if(state==="menu"&&e.key==="o"){state="opt";}
+  if(state==="opt"&&e.key==="s"){soundOn=!soundOn;}
+  if(state==="opt"&&e.key==="Escape"){state="menu";}
+  if(state==="play"&&e.key==="Escape"){state="menu";}
+});
+addEventListener("keyup",e=>k[e.key]=false);
+
+// LOOP
+function loop(){
+  if(state==="menu"){drawMenu();return requestAnimationFrame(loop);}
+  if(state==="opt"){drawOpt();return requestAnimationFrame(loop);}
+
+  // MOVE
+  p.dx=0;
+  if(k.ArrowRight)p.dx=p.s;
+  if(k.ArrowLeft)p.dx=-p.s;
+  if(k[" "]&&p.g){p.dy=-p.j;p.g=false;play(400);}
+  p.x+=p.dx;p.y+=p.dy;p.dy+=g;p.g=false;
+
+  plats.forEach(t=>{
+    if(p.x<t.x+t.w&&p.x+p.w>t.x&&p.y+p.h<=t.y+10&&p.y+p.h+p.dy>=t.y){
+      p.y=t.y-p.h;p.dy=0;p.g=true;
+    }
+  });
+
+  coins.forEach(o=>{
+    if(!o.c&&p.x<o.x+16&&p.x+p.w>o.x&&p.y<o.y+16&&p.y+p.h>o.y){
+      o.c=true;score+=10;play(800);
+    }
+  });
+
+  if(coins.every(o=>o.c)){level++;genLevel();}
+
+  enemies.forEach(e=>{
+    e.x+=e.dx;
+    if(e.x<0||e.x+e.w>900)e.dx*=-1;
+    if(hit(p,e)){
+      lives--;play(200,.3);
+      if(lives<=0){alert("Game Over\nLevel:"+level+"\nScore:"+score);location.reload();}
+      p.x=50;p.y=340;p.dy=0;
+    }
+  });
+
+  drawGame();
+  requestAnimationFrame(loop);
+}
+
+// DRAW
+function drawMenu(){
+  x.clearRect(0,0,900,450);
+  x.fillStyle="#fff";x.textAlign="center";
+  x.font="46px Arial";x.fillText("SUPER MARIO",450,170);
+  x.font="24px Arial";
+  x.fillText("ENTER - START",450,230);
+  x.fillText("O - OPTIONS",450,270);
+}
+function drawOpt(){
+  x.clearRect(0,0,900,450);
+  x.fillStyle="#fff";x.textAlign="center";
+  x.font="36px Arial";x.fillText("OPTIONS",450,170);
+  x.font="22px Arial";
+  x.fillText("S - Sound : "+(soundOn?"ON":"OFF"),450,230);
+  x.fillText("ESC - BACK",450,270);
+}
+function drawGame(){
+  x.clearRect(0,0,900,450);
+  x.fillStyle="#fff";x.font="20px Arial";x.textAlign="left";
+  x.fillText("Score:"+score,20,30);
+  x.fillText("Lives:"+lives,130,30);
+  x.fillText("Level:"+level,240,30);
+
+  x.fillStyle="green";plats.forEach(t=>x.fillRect(t.x,t.y,t.w,t.h));
+  x.fillStyle="gold";coins.forEach(o=>{if(!o.c){x.beginPath();x.arc(o.x+8,o.y+8,8,0,Math.PI*2);x.fill();}});
+  x.fillStyle="brown";enemies.forEach(e=>x.fillRect(e.x,e.y,e.w,e.h));
+  x.fillStyle="red";x.fillRect(p.x,p.y,p.w,p.h);
+}
+function hit(a,b){
+  return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
+}
+loop();
+</script>
+</body>
+</html>
